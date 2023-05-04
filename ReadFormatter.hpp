@@ -184,7 +184,7 @@ public:
     for (k = 0 ; k < segSize ; ++k)
     {
       int end = seg[k].end ;
-      if (end == -1)
+      if (end == -1 || end >= len)
         end = len - 1 ;
       for (j = seg[k].start ; j <= end ; ++j)
       {
