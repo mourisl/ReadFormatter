@@ -23,7 +23,7 @@ struct _segInfo
   int start ;
   int end ;
   int strand ; // -1: minus, 1:posiive
-
+  
 	bool operator<( const struct _segInfo &b )	const
   {
     return start < b.start ; 
@@ -154,7 +154,17 @@ public:
       std::sort(_segs[i].begin(), _segs[i].end()) ;
   }
 
-  int NeedExtract(int category, int end)
+  void AddSegment(int start, int end, int strand, int category)
+  {
+    struct _segInfo ns ;
+    ns.start = start ;
+    ns.end = end ;
+    ns.strand = strand ;
+    _segs[category].push_back(ns) ;
+    std::sort(_segs[ category ].begin(), _segs[ category ].end()) ;
+  }
+
+  int NeedExtract(int category)
   {
     int size = _segs[category].size() ;
     if (size == 0)
@@ -162,7 +172,7 @@ public:
     else if (size == 1)
     {
       if (_segs[category][0].start == 0  
-          && (_segs[category][0].end == -1 || _segs[category][0].end == end)
+          && _segs[category][0].end == -1
           && _segs[category][0].strand == 1)
         return 0 ;
     }
@@ -172,9 +182,9 @@ public:
   // needComplement=true: reverse complement. Otherwise, just reverse
   const char* Extract(const char *seq, int category, bool needComplement, int bufferId = 0)
   {
-    int len = strlen(seq) ;
-    if (!NeedExtract(category, len - 1))
+    if (!NeedExtract(category))
       return seq ;
+    int len = strlen(seq) ;
     int i, j, k ;
     const std::vector<_segInfo> &seg = _segs[category] ;
     int segSize = seg.size() ;
