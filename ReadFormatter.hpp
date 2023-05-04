@@ -1,5 +1,5 @@
-#ifndef _MOURISL_READ_PARSER
-#define _MOURISL_READ_PARSER
+#ifndef _MOURISL_READ_FORMATTER
+#define _MOURISL_READ_FORMATTER
 
 #include <vector>
 #include <algorithm>
@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "BufferManager.hpp"
 
 enum {
   FORMAT_READ1,
@@ -30,11 +32,12 @@ struct _segInfo
 
 // Parse for read1, read2, barcode and UMI.
 // Current implementation is not thread-safe.
-class ReadParser
+class ReadFormatter
 {
 private:
-  char *_buffer ;
-  int _bufferSize ;
+  BufferManager<char> _buffers ;
+  char _compChar[256] ;
+
   std::vector<struct _segInfo> _segs[FORMAT_CATEGORY_COUNT] ;
   
   // Return false if it fails to parse the format string.
@@ -81,7 +84,6 @@ private:
         ++blen;
       }
     }
-
     if (j >= 3 || j < 1) {
       return false;
     }
@@ -89,27 +91,55 @@ private:
     _segs[category].push_back(seg) ;
     return true;
   }
-  
+
+  void ReverseBuffer(char *buffer, int len)
+  {
+    int i, j ;
+    for (i = 0, j = len - 1 ; i < j ; ++i, --j )
+    {
+      char tmp = buffer[i] ;
+      buffer[i] = buffer[j] ;
+      buffer[j] = tmp ;
+    }
+  }
+
+  void ComplementBuffer(char *buffer, int len)
+  {
+    int i ;
+    for (i = 0 ; i < len ; ++i)
+      buffer[i] = _compChar[ buffer[i] ] ;
+  }
+
 public:
-  ReadParser() {
-    _buffer = NULL;
-    _bufferSize = 0;
+  ReadFormatter() {
+    int i ;
+    for (i = 0 ; i < 256 ; ++i)
+      _compChar[i] = 'N' ;
+    _compChar['A'] = 'T' ;
+    _compChar['C'] = 'G' ;
+    _compChar['G'] = 'C' ;
+    _compChar['T'] = 'A' ;
   } 
 
-  ~ReadParser() {
-    if (_buffer != NULL)
-      free(_buffer);
+  ~ReadFormatter() {
+  }
+
+  void AllocateBuffers(int bufferCnt)
+  {
+    _buffers.Init(bufferCnt) ;
   }
 
   void Init(const char *formatStr) {
     int i, j;
+    if (_buffers.GetBufferCount() == 0)
+      AllocateBuffers(2) ;
     for (i = 0 ; formatStr[i] ; ) {
       for (j = i ; formatStr[j] && formatStr[j] != ';' && formatStr[j] != ',' ; ++j)
         ;
       
       if (!ParseFormatStringAndAppendEffectiveRange(formatStr + i, j - i))
       {
-        fprintf(stderr, "Format description error in %s", formatStr) ;
+        fprintf(stderr, "Format description error in %s\n", formatStr) ;
         exit(1) ;
       }
 
@@ -136,36 +166,43 @@ public:
           && _segs[category][0].strand == 1)
         return 0 ;
     }
-    else
-      return 1 ;
+    return 1 ;
   }
 
   // needComplement=true: reverse complement. Otherwise, just reverse
-  const char* ExtractSequence(const char *seq, int category, bool needComplement)
+  const char* Extract(const char *seq, int category, bool needComplement, int bufferId = 0)
   {
     int len = strlen(seq) ;
     if (!NeedExtract(category, len - 1))
       return seq ;
-    if (len + 1 > _bufferSize)
-    {
-      _buffer = (char *)realloc(_buffer, len + 1) ;
-      _bufferSize = len + 1 ; 
-    }
     int i, j, k ;
     const std::vector<_segInfo> &seg = _segs[category] ;
     int segSize = seg.size() ;
     int strand = 1 ;
+    char *buffer = _buffers.Get(bufferId, len + 1) ;
     i = 0 ;
     for (k = 0 ; k < segSize ; ++k)
     {
-      for (j = seg[k].start ; j <= seg[k].end ; ++j)
+      int end = seg[k].end ;
+      if (end == -1)
+        end = len - 1 ;
+      for (j = seg[k].start ; j <= end ; ++j)
       {
-        _buffer[i] = seq[j] ;
+        buffer[i] = seq[j] ;
         ++i ;
       }
+      if (seg[k].strand == -1)
+        strand = -1 ;
     }
-    _buffer[i] = '\0' ;
-    return _buffer ;
+    buffer[i] = '\0' ;
+
+    if (strand == -1)
+    {
+      ReverseBuffer(buffer, i) ;
+      if (needComplement)
+        ComplementBuffer(buffer, i) ;
+    }
+    return buffer ;
   }
 } ;
 
