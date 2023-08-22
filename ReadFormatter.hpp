@@ -163,7 +163,7 @@ public:
     _segs[category].push_back(ns) ;
     std::sort(_segs[ category ].begin(), _segs[ category ].end()) ;
     
-		if (_buffers.GetBufferCount() == 0)
+    if (_buffers.GetBufferCount() == 0)
       AllocateBuffers(2) ;
   }
 
@@ -183,7 +183,7 @@ public:
   }
 
   // needComplement=true: reverse complement. Otherwise, just reverse
-	// The outside program can modify the buffer.
+  // The outside program can modify the buffer.
   char* Extract(char *seq, int category, bool needComplement, int bufferId = 0)
   {
     int len = strlen(seq) ;
@@ -193,19 +193,27 @@ public:
     int strand = 1 ;
     char *buffer = _buffers.Get(bufferId, len + 1) ;
     
-		if (!NeedExtract(category))
-		{
+    if (!NeedExtract(category))
+    {
       strcpy(buffer, seq) ;
-			return buffer ;
-		}
+      return buffer ;
+    }
 
     i = 0 ;
     for (k = 0 ; k < segSize ; ++k)
     {
+      int start = seg[k].start ;
       int end = seg[k].end ;
-      if (end == -1 || end >= len)
+      
+      if (start < 0)
+        start = len + start ;
+
+      if (end >= len)
         end = len - 1 ;
-      for (j = seg[k].start ; j <= end ; ++j)
+      else if (end < 0)
+        end = len + end ;
+
+      for (j = start ; j <= end ; ++j)
       {
         buffer[i] = seq[j] ;
         ++i ;
