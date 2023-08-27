@@ -150,8 +150,9 @@ public:
     }
     
     // Sort the order in each specification
-    for (i = 0 ; i < FORMAT_CATEGORY_COUNT ; ++i)
-      std::sort(_segs[i].begin(), _segs[i].end()) ;
+    // It seems there are applications 
+    //for (i = 0 ; i < FORMAT_CATEGORY_COUNT ; ++i)
+    //  std::sort(_segs[i].begin(), _segs[i].end()) ;
   }
 
   void AddSegment(int start, int end, int strand, int category)
@@ -161,7 +162,7 @@ public:
     ns.end = end ;
     ns.strand = strand ;
     _segs[category].push_back(ns) ;
-    std::sort(_segs[ category ].begin(), _segs[ category ].end()) ;
+    //std::sort(_segs[ category ].begin(), _segs[ category ].end()) ;
     
     if (_buffers.GetBufferCount() == 0)
       AllocateBuffers(2) ;
@@ -183,8 +184,9 @@ public:
   }
 
   // needComplement=true: reverse complement. Otherwise, just reverse
+  // retSeqWhenNoExtraction: when needextract==false, return seq instead of buffer
   // The outside program can modify the buffer.
-  char* Extract(char *seq, int category, bool needComplement, int bufferId = 0)
+  char* Extract(char *seq, int category, bool needComplement, bool retSeqWhenNoExtraction, int bufferId = 0)
   {
     int len = strlen(seq) ;
     int i, j, k ;
@@ -195,8 +197,13 @@ public:
     
     if (!NeedExtract(category))
     {
-      strcpy(buffer, seq) ;
-      return buffer ;
+      if (retSeqWhenNoExtraction)
+        return seq ;
+      else
+      {
+        strcpy(buffer, seq) ;
+        return buffer ;
+      }
     }
 
     i = 0 ;

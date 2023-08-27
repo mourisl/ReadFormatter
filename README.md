@@ -4,7 +4,7 @@ The class for extracting actual sequence from read, barcode, UMI. The format spe
 
 g++ example.cpp
 
-./a.out r1:0:3,r2:4:-1,bc:0:3,bc:12:15:-,um:11:15
+./a.out r1:0:3,r2:4:-1,bc:0:3,bc:12:15:-,um:11:-2
 
 Output
 ```
@@ -21,7 +21,7 @@ CGATCGAT
 -
 QPOMDCBA
 @um
-GATCG
+GATC
 -
-LMOPQ
+LMOP
 ```
