@@ -40,6 +40,7 @@ private:
   char _compChar[256] ;
 
   std::vector<struct _segInfo> _segs[FORMAT_CATEGORY_COUNT] ;
+  bool _areSegmentsSorted[FORMAT_CATEGORY_COUNT] ; // Whether the segments for this category is sorted or not. Sorted segments may be parsed quicker in certain functions.
   
   // Return false if it fails to parse the format string.
   bool ParseFormatStringAndAppendEffectiveRange(const char *s, int len) {
@@ -48,7 +49,6 @@ private:
     char buffer[20];
     int blen = 0;
     int start; 
-    int commentField = -1;
     
     struct _segInfo seg ;
     if (s[2] != ':')
@@ -118,6 +118,16 @@ private:
     return true;
   }
 
+  bool AreSegmentsSorted(int category)
+  {
+    int size = _segs[category].size() ;
+    int i ;
+    for (i = 1 ; i < size ; ++i)
+      if (_segs[category][i].start <= _segs[category][i - 1].end)
+        return false ;
+    return true ;
+  }
+
   void ReverseBuffer(char *buffer, int len)
   {
     int i, j ;
@@ -179,6 +189,8 @@ public:
     // It seems there are applications 
     //for (i = 0 ; i < FORMAT_CATEGORY_COUNT ; ++i)
     //  std::sort(_segs[i].begin(), _segs[i].end()) ;
+    for (i = 0 ; i < FORMAT_CATEGORY_COUNT ; ++i)
+      _areSegmentsSorted[i] = AreSegmentsSorted(i) ;
   }
 
   void AddSegment(int start, int end, int strand, int category)
@@ -224,6 +236,7 @@ public:
 
   // needComplement=true: reverse complement. Otherwise, just reverse
   // retSeqWhenNoExtraction: when needextract==false, return seq instead of buffer
+  // bufferId -1 for inplace (a super set of retSeqWhenNoExtraction)
   // The outside program can modify the buffer.
   char* Extract(char *seq, int category, bool needComplement, bool retSeqWhenNoExtraction, int bufferId = 0)
   {
@@ -235,7 +248,7 @@ public:
     
     if (!NeedExtract(category))
     {
-      if (retSeqWhenNoExtraction) // this implictly require no _buffers initalization
+      if (retSeqWhenNoExtraction || bufferId == -1) // this implictly require no _buffers initalization
         return seq ;
       else
       {
@@ -245,9 +258,11 @@ public:
       }
     }
 
-    char *buffer = _buffers.Get(bufferId, len + 1) ;
-    i = 0 ;
+    char *buffer = seq ;
+    if (bufferId >= 0)
+      buffer = _buffers.Get(bufferId, len + 1) ;
     
+    i = 0 ;
     for (k = 0 ; k < segSize ; ++k)
     {
       int start = seg[k].start ;
@@ -307,6 +322,23 @@ public:
         ComplementBuffer(buffer, i) ;
     }
     return buffer ;
+  }
+
+  // Directly change the content of seq and qual
+  void InplaceExtractSeqAndQual(char *seq, char *qual, int category, int bufferId = 0)
+  {
+    char *buffer = Extract(seq, category, true, true, 
+        _areSegmentsSorted[category] ? -1 : bufferId) ;
+    if (buffer != seq)
+      strcpy(seq, buffer) ;
+
+    if (qual != NULL)
+    {
+      buffer = Extract(qual, category, false, true, 
+          _areSegmentsSorted[category] ? -1 : bufferId) ;
+      if (buffer != qual)
+        strcpy(qual, buffer) ;
+    }
   }
 } ;
 
