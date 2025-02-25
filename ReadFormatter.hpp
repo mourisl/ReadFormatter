@@ -205,6 +205,15 @@ public:
     if (_buffers.GetBufferCount() == 0)
       AllocateBuffers(2) ;
   }
+  
+  int GetTotalSegmentCount()
+  {
+    int i ;
+    int ret = 0 ;
+    for (i = 0 ; i < FORMAT_CATEGORY_COUNT ; ++i)
+      ret += _segs[i].size() ;
+    return ret ;
+  }
 
   int NeedExtract(int category)
   {
