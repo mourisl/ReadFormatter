@@ -3,6 +3,9 @@
 #include "ReadFormatter.hpp"
 
 // Usage: a.out format
+// format example:
+// ./a.out r1:0:3,r2:4:-1,bc:0:3,bc:12:15:-,um:11:-2
+// ./a.out r1:0:3,r2:4:-1,bc:hd:CB:0:-1,um:11:-2
 
 int main(int argc, char *argv[])
 {
