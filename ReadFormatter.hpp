@@ -69,7 +69,7 @@ private:
       return false ;
     }
 
-    //Specification like: bc:hd:XX:YY. (hd is for header, XX is the number, YY is the conventional segment specification string)
+    //Specification like: bc:hd:XX:YY. (hd is for header comment field, XX is the number, YY is the conventional segment specification string)
     //Also support bc:hd:SSS:YY for searching the tag with SSS as the prefix
     start = 3 ;
     seg.inComment = false ;
